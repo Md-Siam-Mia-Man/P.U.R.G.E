@@ -1,5 +1,3 @@
-// README.md
-
 <p align="center"><img src="assets/img/Banner.png" alt="Universal Android Debloater Banner"></p>
 
 <p align="center">
