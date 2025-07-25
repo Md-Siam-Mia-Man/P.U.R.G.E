@@ -1,3 +1,4 @@
+# build.sh
 #!/bin/bash
 
 # A script to build release binaries for Linux and Windows.
@@ -74,7 +75,15 @@ WINDOWS_ARCHIVE_NAME="${PROJECT_NAME}-v${VERSION}-windows-x86_64.zip"
 echo "Windows package created: $RELEASE_DIR/$WINDOWS_ARCHIVE_NAME"
 
 
-# --- 7. Final Summary ---
+# --- 7. Cleanup Intermediate Files ---
+echo ""
+echo "Cleaning up intermediate build directories..."
+rm -rf "$LINUX_BUILD_DIR"
+rm -rf "$WINDOWS_BUILD_DIR"
+echo "Cleanup complete."
+
+
+# --- 8. Final Summary ---
 echo ""
 echo "=============================="
 echo "All builds completed successfully!"
