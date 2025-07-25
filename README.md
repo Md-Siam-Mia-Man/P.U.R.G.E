@@ -1,5 +1,3 @@
-// README.md
-
 <p align="center"><img src="assets/img/Banner.png" alt="P.U.R.G.E. Banner"></p>
 
 <p align="center">
