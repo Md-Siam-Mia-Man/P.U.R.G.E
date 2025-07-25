@@ -1,4 +1,4 @@
-# build.sh
+// build.sh
 #!/bin/bash
 
 # A script to build release binaries for Linux and Windows.
@@ -8,7 +8,7 @@
 set -e
 
 # --- Configuration ---
-PROJECT_NAME="universal-android-debloater"
+PROJECT_NAME="purge" # <--- UPDATED
 # Get version from Cargo.toml to avoid hardcoding it
 VERSION=$(grep '^version =' Cargo.toml | head -n 1 | cut -d '"' -f 2)
 RELEASE_DIR="releases"
@@ -47,7 +47,6 @@ cp "target/$LINUX_TARGET/release/$PROJECT_NAME" "$LINUX_BUILD_DIR/"
 cp README.md LICENSE.md "$LINUX_BUILD_DIR/"
 
 LINUX_ARCHIVE_NAME="${PROJECT_NAME}-v${VERSION}-linux-x86_64.tar.gz"
-# The -C flag is important. It creates the archive without the parent directory structure.
 tar -czf "$RELEASE_DIR/$LINUX_ARCHIVE_NAME" -C "$LINUX_BUILD_DIR" .
 
 echo "Linux package created: $RELEASE_DIR/$LINUX_ARCHIVE_NAME"
@@ -58,6 +57,7 @@ echo ""
 echo "=============================="
 echo "Building for Windows (x86_64)..."
 echo "=============================="
+# The .exe extension is added automatically on Windows
 cargo build --target=$WINDOWS_TARGET --release
 
 # --- 6. Package for Windows ---
@@ -69,7 +69,6 @@ cp "target/$WINDOWS_TARGET/release/${PROJECT_NAME}.exe" "$WINDOWS_BUILD_DIR/"
 cp README.md LICENSE.md "$WINDOWS_BUILD_DIR/"
 
 WINDOWS_ARCHIVE_NAME="${PROJECT_NAME}-v${VERSION}-windows-x86_64.zip"
-# Create a subshell to change directory, create the zip, then return.
 (cd "$WINDOWS_BUILD_DIR" && zip -r "../$WINDOWS_ARCHIVE_NAME" .)
 
 echo "Windows package created: $RELEASE_DIR/$WINDOWS_ARCHIVE_NAME"

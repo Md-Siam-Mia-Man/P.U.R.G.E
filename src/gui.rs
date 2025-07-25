@@ -18,6 +18,7 @@ enum AdbCommand {
 enum AdbResult {
     DeviceDetectionResult(String),
     PackageListResult(Result<Vec<String>, String>),
+    UninstallProgress(usize, usize), // current, total
     UninstallFinished,
     RebootFinished,
 }
@@ -35,6 +36,9 @@ pub struct DebloaterApp {
     command_tx: mpsc::Sender<AdbCommand>,
     result_rx: mpsc::Receiver<AdbResult>,
     is_busy: bool,
+    logo_texture: egui::TextureHandle,
+    progress: f32,
+    uninstall_total: usize,
 }
 
 impl DebloaterApp {
@@ -57,6 +61,7 @@ impl DebloaterApp {
 
         let (command_tx, command_rx) = mpsc::channel();
         let (result_tx, result_rx) = mpsc::channel();
+        let result_tx_clone = result_tx.clone();
 
         thread::spawn(move || {
             while let Ok(command) = command_rx.recv() {
@@ -73,8 +78,11 @@ impl DebloaterApp {
                         }
                     }
                     AdbCommand::Uninstall(packages) => {
-                        for pkg in packages {
-                            adb::uninstall(&pkg);
+                        let total = packages.len();
+                        for (i, pkg) in packages.iter().enumerate() {
+                            adb::uninstall(pkg);
+                            let _ =
+                                result_tx_clone.send(AdbResult::UninstallProgress(i + 1, total));
                         }
                         AdbResult::UninstallFinished
                     }
@@ -87,11 +95,21 @@ impl DebloaterApp {
             }
         });
 
+        let image = image::load_from_memory(include_bytes!("../assets/img/logo.png"))
+            .expect("Failed to load logo");
+        let size = [image.width() as _, image.height() as _];
+        let image_buffer = image.to_rgba8();
+        let pixels = image_buffer.as_flat_samples();
+        let color_image = egui::ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
+        let logo_texture = cc
+            .egui_ctx
+            .load_texture("logo", color_image, Default::default());
+
         Self {
             uad_packages,
             installed_packages: HashSet::new(),
             selected: HashSet::new(),
-            adb_output: "Welcome to UAD!\n1. Connect your device with USB Debugging enabled.\n2. Click 'Detect Device'.\n3. Click 'List Packages' to begin.".to_string(),
+            adb_output: "Welcome to P.U.R.G.E.!\n1. Connect your device with USB Debugging enabled.\n2. Click 'Detect Device'.\n3. Click 'List Packages' to begin.".to_string(),
             search_query: String::new(),
             all_lists,
             all_removals,
@@ -100,6 +118,9 @@ impl DebloaterApp {
             command_tx,
             result_rx,
             is_busy: false,
+            logo_texture,
+            progress: 0.0,
+            uninstall_total: 0,
         }
     }
 
@@ -122,11 +143,17 @@ impl DebloaterApp {
                     self.adb_output = e;
                     self.is_busy = false;
                 }
+                AdbResult::UninstallProgress(current, total) => {
+                    self.progress = current as f32 / total as f32;
+                    self.adb_output = format!("Purging package {} of {}...", current, total);
+                }
                 AdbResult::UninstallFinished => {
                     self.adb_output
-                        .push_str("\nUninstall complete. Refreshing package list...");
+                        .push_str("\nPurge complete. Refreshing package list...");
                     self.command_tx.send(AdbCommand::ListPackages).unwrap();
                     self.selected.clear();
+                    self.progress = 0.0;
+                    self.uninstall_total = 0;
                 }
                 AdbResult::RebootFinished => {
                     self.adb_output = "Reboot command sent to device.".to_string();
@@ -167,7 +194,7 @@ fn setup_theme(ctx: &egui::Context) {
 
     visuals.widgets.noninteractive.bg_fill = dark_grey;
     visuals.widgets.noninteractive.fg_stroke.color = light_grey;
-    visuals.widgets.noninteractive.rounding = egui::Rounding::same(4.0);
+    visuals.widgets.noninteractive.rounding = egui::Rounding::same(6.0);
 
     visuals.widgets.inactive.bg_fill = dark_grey;
     visuals.widgets.inactive.fg_stroke.color = white;
@@ -187,7 +214,7 @@ fn setup_theme(ctx: &egui::Context) {
     style.text_styles = [
         (
             egui::TextStyle::Heading,
-            egui::FontId::new(22.0, egui::FontFamily::Proportional),
+            egui::FontId::new(24.0, egui::FontFamily::Proportional),
         ),
         (
             egui::TextStyle::Body,
@@ -209,12 +236,12 @@ fn setup_theme(ctx: &egui::Context) {
     .into();
     style.spacing.item_spacing = egui::vec2(12.0, 12.0);
     style.spacing.button_padding = egui::vec2(12.0, 8.0);
-    style.spacing.interact_size.y = 32.0;
-    style.visuals.window_rounding = egui::Rounding::same(6.0);
-    style.visuals.widgets.noninteractive.rounding = egui::Rounding::same(4.0);
-    style.visuals.widgets.inactive.rounding = egui::Rounding::same(4.0);
-    style.visuals.widgets.hovered.rounding = egui::Rounding::same(4.0);
-    style.visuals.widgets.active.rounding = egui::Rounding::same(4.0);
+    style.spacing.interact_size.y = 36.0;
+    style.visuals.window_rounding = egui::Rounding::same(8.0);
+    style.visuals.widgets.noninteractive.rounding = egui::Rounding::same(6.0);
+    style.visuals.widgets.inactive.rounding = egui::Rounding::same(6.0);
+    style.visuals.widgets.hovered.rounding = egui::Rounding::same(6.0);
+    style.visuals.widgets.active.rounding = egui::Rounding::same(6.0);
 
     ctx.set_style(style);
 }
@@ -242,141 +269,166 @@ impl eframe::App for DebloaterApp {
             .collect();
 
         egui::SidePanel::left("control_panel")
-            .width_range(280.0..=450.0)
+            .width_range(300.0..=500.0)
             .show(ctx, |ui| {
-                ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
-                    ui.add_space(10.0);
-                    ui.heading("Universal Android Debloater");
-                    ui.add_space(20.0);
-
-                    ui.label("Device Connection");
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    ui.add_space(15.0);
                     ui.horizontal(|ui| {
-                        if ui
-                            .add_enabled(!self.is_busy, egui::Button::new("Detect Device"))
-                            .clicked()
-                        {
-                            self.is_busy = true;
-                            self.adb_output = "Detecting device...".to_string();
-                            self.command_tx.send(AdbCommand::DetectDevice).unwrap();
-                        }
-                        if ui
-                            .add_enabled(!self.is_busy, egui::Button::new("List Packages"))
-                            .clicked()
-                        {
-                            self.is_busy = true;
-                            self.adb_output = "Listing installed packages...".to_string();
-                            self.command_tx.send(AdbCommand::ListPackages).unwrap();
-                        }
+                        ui.image((self.logo_texture.id(), egui::vec2(64.0, 64.0)));
+                        ui.heading("P.U.R.G.E.");
                     });
-
+                    ui.label("Package Uninstaller & Resource Garbage Eliminator");
                     ui.add_space(20.0);
-                    ui.label("Package Selection");
-                    let uninstall_text = format!("Uninstall ({}) Selected", self.selected.len());
-                    let uninstall_button = egui::Button::new(
-                        egui::RichText::new(uninstall_text)
-                            .color(ctx.style().visuals.widgets.active.fg_stroke.color),
-                    );
-                    if ui
-                        .add_enabled(!self.selected.is_empty() && !self.is_busy, uninstall_button)
-                        .clicked()
-                    {
-                        self.is_busy = true;
-                        self.adb_output =
-                            format!("Uninstalling {} packages...", self.selected.len());
-                        let packages_to_uninstall: Vec<String> =
-                            self.selected.iter().cloned().collect();
-                        self.command_tx
-                            .send(AdbCommand::Uninstall(packages_to_uninstall))
-                            .unwrap();
-                    }
 
-                    ui.horizontal(|ui| {
-                        if ui
-                            .add_enabled(!self.is_busy, egui::Button::new("Select All"))
-                            .clicked()
-                        {
-                            for pkg in &filtered_packages {
-                                self.selected.insert(pkg.id.clone());
+                    let group_frame = egui::Frame {
+                        inner_margin: egui::Margin::same(12.0),
+                        ..egui::Frame::group(ui.style())
+                    };
+
+                    group_frame.show(ui, |ui| {
+                        ui.label(egui::RichText::new("1. Device Connection").strong());
+                        ui.add_space(5.0);
+                        ui.horizontal(|ui| {
+                            if ui
+                                .add_enabled(!self.is_busy, egui::Button::new("🔌 Detect Device"))
+                                .clicked()
+                            {
+                                self.is_busy = true;
+                                self.adb_output = "Detecting device...".to_string();
+                                self.command_tx.send(AdbCommand::DetectDevice).unwrap();
                             }
-                        }
-                        if ui
-                            .add_enabled(!self.is_busy, egui::Button::new("Deselect All"))
-                            .clicked()
-                        {
-                            self.selected.clear();
-                        }
-                        if ui
-                            .add_enabled(!self.is_busy, egui::Button::new("Reboot Device"))
-                            .clicked()
-                        {
-                            self.is_busy = true;
-                            self.adb_output = "Sending reboot command...".to_string();
-                            self.command_tx.send(AdbCommand::Reboot).unwrap();
-                        }
+                            if ui
+                                .add_enabled(!self.is_busy, egui::Button::new("📦 List Packages"))
+                                .clicked()
+                            {
+                                self.is_busy = true;
+                                self.adb_output = "Listing installed packages...".to_string();
+                                self.command_tx.send(AdbCommand::ListPackages).unwrap();
+                            }
+                        });
                     });
 
-                    ui.add_space(20.0);
-                    ui.label("Search & Filter");
-                    ui.add_enabled(
-                        !self.is_busy,
-                        egui::TextEdit::singleline(&mut self.search_query),
-                    )
-                    .on_hover_text("Search by package name");
+                    ui.add_space(15.0);
 
-                    // FIX 1: Disable a group of widgets using ui.scope
-                    ui.scope(|ui| {
-                        ui.set_enabled(!self.is_busy);
-                        egui::ComboBox::from_id_source("list_filter")
-                            .selected_text(self.filter_list.clone())
-                            .show_ui(ui, |ui| {
-                                for list_name in &self.all_lists {
-                                    ui.selectable_value(
-                                        &mut self.filter_list,
-                                        list_name.clone(),
-                                        list_name.clone(),
-                                    );
+                    group_frame.show(ui, |ui| {
+                        ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                            let purge_button_text =
+                                format!("🔥 Purge ({}) Selected", self.selected.len());
+                            let purge_button = egui::Button::new(
+                                egui::RichText::new(purge_button_text).size(20.0).strong(),
+                            )
+                            .rounding(egui::Rounding::same(18.0));
+
+                            ui.add_enabled_ui(!self.selected.is_empty() && !self.is_busy, |ui| {
+                                let response =
+                                    ui.add_sized([ui.available_width(), 40.0], purge_button);
+                                if response.clicked() {
+                                    self.is_busy = true;
+                                    self.uninstall_total = self.selected.len();
+                                    self.adb_output =
+                                        format!("Purging {} packages...", self.selected.len());
+                                    let packages_to_uninstall: Vec<String> =
+                                        self.selected.iter().cloned().collect();
+                                    self.command_tx
+                                        .send(AdbCommand::Uninstall(packages_to_uninstall))
+                                        .unwrap();
                                 }
                             });
 
-                        egui::ComboBox::from_id_source("removal_filter")
-                            .selected_text(self.filter_removal.clone())
-                            .show_ui(ui, |ui| {
-                                for removal_name in &self.all_removals {
-                                    ui.selectable_value(
-                                        &mut self.filter_removal,
-                                        removal_name.clone(),
-                                        removal_name.clone(),
-                                    );
-                                }
-                            });
+                            if self.is_busy && self.uninstall_total > 0 {
+                                ui.add_space(5.0);
+                                ui.add(egui::ProgressBar::new(self.progress).show_percentage());
+                            }
+
+                            ui.add_space(10.0);
+                            ui.separator();
+                            ui.label("Other Actions");
+
+                            let reboot_button = egui::Button::new("🔄 Reboot Device");
+                            if ui.add_enabled(!self.is_busy, reboot_button).clicked() {
+                                self.is_busy = true;
+                                self.adb_output = "Sending reboot command...".to_string();
+                                self.command_tx.send(AdbCommand::Reboot).unwrap();
+                            }
+                        });
                     });
                 });
             });
 
         egui::TopBottomPanel::bottom("bottom_log_panel")
             .resizable(true)
-            .min_height(60.0)
-            .max_height(300.0)
+            .default_height(150.0)
+            .min_height(100.0)
             .show(ctx, |ui| {
-                ui.add_space(5.0);
-                ui.label("Log Output");
-                egui::ScrollArea::vertical()
-                    .stick_to_bottom(true)
-                    .show(ui, |ui| {
-                        let mut log_clone = self.adb_output.clone();
-                        if self.is_busy {
-                            log_clone.push_str("\nWorking...");
-                        }
-                        ui.add_sized(
-                            ui.available_size(),
-                            egui::TextEdit::multiline(&mut log_clone)
-                                .font(egui::TextStyle::Monospace)
-                                .interactive(false),
-                        );
-                    });
+                ui.visuals_mut().panel_fill = ui.style().visuals.widgets.noninteractive.bg_fill;
+                ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
+                    ui.add_space(5.0);
+                    ui.label(egui::RichText::new("Log Output").strong());
+                    ui.separator();
+                    egui::ScrollArea::vertical()
+                        .stick_to_bottom(true)
+                        .show(ui, |ui| {
+                            let mut log_clone = self.adb_output.clone();
+                            if self.is_busy && self.uninstall_total == 0 {
+                                log_clone.push_str("\nWorking...");
+                            }
+                            ui.add_sized(
+                                ui.available_size(),
+                                egui::TextEdit::multiline(&mut log_clone)
+                                    .font(egui::TextStyle::Monospace)
+                                    .interactive(false),
+                            );
+                        });
+                });
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            ui.set_enabled(!self.is_busy);
+            ui.horizontal(|ui| {
+                ui.style_mut().spacing.item_spacing.x = 8.0;
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.search_query)
+                        .hint_text("🔎 Search...")
+                        .desired_width(180.0),
+                );
+
+                egui::ComboBox::from_id_source("list_filter")
+                    .selected_text(self.filter_list.clone())
+                    .show_ui(ui, |ui| {
+                        for list_name in &self.all_lists {
+                            ui.selectable_value(
+                                &mut self.filter_list,
+                                list_name.clone(),
+                                list_name.clone(),
+                            );
+                        }
+                    });
+
+                egui::ComboBox::from_id_source("removal_filter")
+                    .selected_text(self.filter_removal.clone())
+                    .show_ui(ui, |ui| {
+                        for removal_name in &self.all_removals {
+                            ui.selectable_value(
+                                &mut self.filter_removal,
+                                removal_name.clone(),
+                                removal_name.clone(),
+                            );
+                        }
+                    });
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("❌ Deselect All").clicked() {
+                        self.selected.clear();
+                    }
+                    if ui.button("✅ Select All").clicked() {
+                        for pkg in &filtered_packages {
+                            self.selected.insert(pkg.id.clone());
+                        }
+                    }
+                });
+            });
+            ui.separator();
+
             if self.is_busy && self.installed_packages.is_empty() {
                 ui.centered_and_justified(|ui| {
                     ui.spinner();
@@ -395,122 +447,132 @@ impl eframe::App for DebloaterApp {
                 });
             } else {
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui.add_space(5.0);
-                    // FIX 2: Disable the entire list while busy
                     ui.set_enabled(!self.is_busy);
                     for info in filtered_packages {
                         let is_selected = self.selected.contains(&info.id);
                         let frame_color = if is_selected {
-                            ui.style().visuals.widgets.hovered.bg_fill
+                            ui.style().visuals.selection.bg_fill
                         } else {
                             ui.style().visuals.widgets.noninteractive.bg_fill
                         };
-                        let frame = egui::Frame::none()
+
+                        let response = egui::Frame::none()
                             .inner_margin(egui::Margin::symmetric(12.0, 10.0))
                             .rounding(ui.style().visuals.widgets.noninteractive.rounding)
-                            .fill(frame_color);
-
-                        let response = frame.show(ui, |ui| {
-                            ui.horizontal(|ui| {
-                                let mut selected_for_toggle = is_selected;
-                                if ui.checkbox(&mut selected_for_toggle, "").clicked() {
-                                    if selected_for_toggle {
-                                        self.selected.insert(info.id.clone());
-                                    } else {
-                                        self.selected.remove(&info.id);
+                            .fill(frame_color)
+                            .show(ui, |ui| {
+                                ui.horizontal(|ui| {
+                                    let mut selected_for_toggle = is_selected;
+                                    if ui.checkbox(&mut selected_for_toggle, "").clicked() {
+                                        if selected_for_toggle {
+                                            self.selected.insert(info.id.clone());
+                                        } else {
+                                            self.selected.remove(&info.id);
+                                        }
                                     }
-                                }
-                                ui.label(egui::RichText::new(&info.id).strong());
-                                ui.with_layout(
-                                    egui::Layout::right_to_left(egui::Align::Center),
-                                    |ui| {
-                                        let status = info.removal.as_deref().unwrap_or("Unknown");
-                                        let color = match status {
-                                            "Recommended" => egui::Color32::from_rgb(0, 180, 255), // Light Blue
-                                            "Advanced" => egui::Color32::from_rgb(255, 180, 0), // Yellow
-                                            "Expert" => egui::Color32::from_rgb(255, 80, 80), // Red
-                                            _ => {
-                                                ui.style().visuals.widgets.inactive.fg_stroke.color
-                                            }
-                                        };
-                                        ui.label(egui::RichText::new(status).color(color).strong());
-                                    },
-                                );
-                            });
-
-                            if let Some(desc) = &info.description {
-                                ui.add_space(4.0);
-                                ui.label(
-                                    egui::RichText::new(desc.replace("\\n", "\n"))
-                                        .text_style(egui::TextStyle::Small)
-                                        .weak(),
-                                );
-                            }
-
-                            if let Some(labels) = &info.labels {
-                                if !labels.is_empty() {
-                                    ui.add_space(4.0);
-                                    ui.horizontal_wrapped(|ui| {
-                                        ui.style_mut().spacing.item_spacing.x = 4.0;
-                                        ui.label(
-                                            egui::RichText::new("Labels:")
-                                                .text_style(egui::TextStyle::Small)
-                                                .weak(),
-                                        );
-                                        for label in labels {
-                                            let frame = egui::Frame::none()
-                                                .inner_margin(egui::vec2(4.0, 2.0))
-                                                .rounding(egui::Rounding::same(4.0))
-                                                .fill(
+                                    ui.label(egui::RichText::new(&info.id).strong());
+                                    ui.with_layout(
+                                        egui::Layout::right_to_left(egui::Align::Center),
+                                        |ui| {
+                                            let status =
+                                                info.removal.as_deref().unwrap_or("Unknown");
+                                            let color = match status {
+                                                "Recommended" => {
+                                                    egui::Color32::from_rgb(0, 180, 255)
+                                                }
+                                                "Advanced" => egui::Color32::from_rgb(255, 180, 0),
+                                                "Expert" => egui::Color32::from_rgb(255, 80, 80),
+                                                _ => {
                                                     ui.style()
                                                         .visuals
                                                         .widgets
-                                                        .noninteractive
-                                                        .bg_fill,
-                                                );
-                                            frame.show(ui, |ui| {
-                                                ui.label(
-                                                    egui::RichText::new(label)
-                                                        .text_style(egui::TextStyle::Small),
-                                                );
-                                            });
-                                        }
-                                    });
-                                }
-                            }
+                                                        .inactive
+                                                        .fg_stroke
+                                                        .color
+                                                }
+                                            };
+                                            ui.label(
+                                                egui::RichText::new(status).color(color).strong(),
+                                            );
+                                        },
+                                    );
+                                });
 
-                            if let Some(deps) = &info.dependencies {
-                                if !deps.is_empty() {
+                                if let Some(desc) = &info.description {
                                     ui.add_space(4.0);
                                     ui.label(
-                                        egui::RichText::new(format!(
-                                            "Dependencies: {}",
-                                            deps.join(", ")
-                                        ))
-                                        .text_style(egui::TextStyle::Small)
-                                        .weak(),
+                                        egui::RichText::new(desc.replace("\\n", "\n"))
+                                            .text_style(egui::TextStyle::Small)
+                                            .weak(),
                                     );
                                 }
-                            }
 
-                            if let Some(needed) = &info.needed_by {
-                                if !needed.is_empty() {
-                                    ui.add_space(4.0);
-                                    ui.label(
-                                        egui::RichText::new(format!(
-                                            "Needed by: {}",
-                                            needed.join(", ")
-                                        ))
-                                        .text_style(egui::TextStyle::Small)
-                                        .weak(),
-                                    );
+                                if let Some(labels) = &info.labels {
+                                    if !labels.is_empty() {
+                                        ui.add_space(4.0);
+                                        ui.horizontal_wrapped(|ui| {
+                                            ui.style_mut().spacing.item_spacing.x = 4.0;
+                                            ui.label(
+                                                egui::RichText::new("Labels:")
+                                                    .text_style(egui::TextStyle::Small)
+                                                    .weak(),
+                                            );
+                                            for label in labels {
+                                                egui::Frame::none()
+                                                    .inner_margin(egui::vec2(4.0, 2.0))
+                                                    .rounding(egui::Rounding::same(4.0))
+                                                    .fill(
+                                                        ui.style()
+                                                            .visuals
+                                                            .widgets
+                                                            .noninteractive
+                                                            .bg_fill,
+                                                    )
+                                                    .show(ui, |ui| {
+                                                        ui.label(
+                                                            egui::RichText::new(label)
+                                                                .text_style(egui::TextStyle::Small),
+                                                        );
+                                                    });
+                                            }
+                                        });
+                                    }
                                 }
-                            }
-                        });
+
+                                // ** THE FIX IS HERE **
+                                if let Some(deps) = &info.dependencies {
+                                    if !deps.is_empty() {
+                                        ui.add_space(4.0);
+                                        ui.label(
+                                            egui::RichText::new(format!(
+                                                "Dependencies: {}",
+                                                deps.join(", ")
+                                            ))
+                                            .text_style(egui::TextStyle::Small)
+                                            .weak(),
+                                        );
+                                    }
+                                }
+
+                                if let Some(needed) = &info.needed_by {
+                                    if !needed.is_empty() {
+                                        ui.add_space(4.0);
+                                        ui.label(
+                                            egui::RichText::new(format!(
+                                                "Needed by: {}",
+                                                needed.join(", ")
+                                            ))
+                                            .text_style(egui::TextStyle::Small)
+                                            .weak(),
+                                        );
+                                    }
+                                }
+                            });
+
                         if response.response.hovered() {
                             ctx.set_cursor_icon(egui::CursorIcon::PointingHand);
                         }
-                        ui.add_space(6.0);
+                        ui.separator();
                     }
                 });
             }

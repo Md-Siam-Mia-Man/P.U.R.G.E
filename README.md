@@ -1,146 +1,90 @@
-<p align="center"><img src="assets/img/Banner.png" alt="Universal Android Debloater Banner"></p>
+// README.md
+
+<p align="center"><img src="assets/img/Banner.png" alt="P.U.R.G.E. Banner"></p>
 
 <p align="center">
   <img alt="Build Status" src="https://img.shields.io/badge/build-passing-brightgreen">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-blue">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.2.0-blue">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-orange">
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-informational">
 </p>
 
-> [!WARNING] > **Use at your own risk.** I am not responsible for anything that could happen to your phone. Always make a backup of your data before proceeding.
+> [!WARNING] > **Use at your own risk!** 💀 This is powerful software. I am not responsible for anything that could happen to your phone. Always make a full backup of your data before proceeding.
 
-![UAD Screenshot](assets/img/UI.png)
+<p align="center">
+  <em>Say goodbye to bloatware with a slick, modern, and native GUI!</em>
+</p>
+
+![P.U.R.G.E. Screenshot](assets/img/UI.png)
 
 ---
 
 ## 📖 Summary
 
-This is a graphical interface for the Universal Android Debloater, built from the ground up in Rust with `egui` for a fast, responsive, and cross-platform experience. It aims to improve privacy and battery performance by making it easy to remove unnecessary and obscure system apps. This can also contribute to improving security by reducing the device's [attack surface](https://en.wikipedia.org/wiki/Attack_surface).
+Welcome to **P.U.R.G.E.**! 📱 This is a native debloater GUI built from scratch in Rust and `egui` for a fast, responsive, and truly cross-platform experience. Our mission is to help you reclaim your device's privacy and battery life by making it dead simple to remove unnecessary system apps. A leaner device also means a smaller [attack surface](https://en.wikipedia.org/wiki/Attack_surface), hardening your security.
 
-Packages are documented as well as possible to provide a better understanding of what you can safely remove. The worst issue that could happen is removing an essential system package needed during boot, causing an unfortunate bootloop. **Make a backup first!** After about 5 failed system boots, the phone will automatically enter recovery mode, where you may need to perform a factory reset.
+Packages are documented to give you a clear idea of what's safe to remove. The worst-case scenario is a bootloop, but don't panic! After about 5 failed boots, your phone will enter recovery mode, where you can perform a factory reset.
 
-In any case, you **CANNOT** permanently brick your device with this software!
+**Bottom line: You CANNOT permanently brick your device with this software!**
 
 ---
 
 ## ✨ Features
 
-- **🚀 Blazing Fast:** Built with native Rust for maximum performance and minimum resource usage.
-- **🎨 Modern & Clean UI:** An intuitive and aesthetically pleasing interface built with the `egui` framework.
-- **🔍 Powerful Filtering:** Instantly search for packages by name, or filter by list type (`Recommended`, `Advanced`, etc.) and removal status.
-- **ℹ️ Detailed Information:** View descriptions, dependencies, and other critical information for each package before removal.
-- **📦 Self-Contained:** The required ADB binaries are embedded directly into the application. **No need to install ADB on your system!**
-- **💻 Cross-Platform:** Single codebase that compiles and runs on Windows, macOS, and Linux.
+- **🚀 Blazing Fast & Feather-Light:** Built with native Rust for instant startup and minimal resource usage. No sluggish Electron apps here!
+- **🎨 Polished & Modern UI:** A beautiful, non-blocking interface with a logical layout, clear action buttons, and helpful icons.
+- **📊 Visual Progress Bar:** Never get left in the dark. A progress bar shows you exactly how much work is left during a purge.
+- **📦 All-In-One Executable:** The required ADB binaries for Windows and Linux are embedded directly into the app. Zero setup required!
+- **💻 Genuinely Cross-Platform:** One codebase that compiles and runs flawlessly on both Windows and Linux.
+- **🔍 Find Anything, Instantly:** A compact control bar lets you search, filter by list (`Recommended`, `Advanced`), and sort by removal status.
+- **ℹ️ Know Before You Nuke:** View detailed descriptions, dependencies, and other critical info for each package before you hit uninstall.
 
 ---
 
 ## 📚 Debloat Lists
 
-This tool uses the extensive and well-researched package lists from the original UAD project.
-
-#### Universal Lists
-
-- [x] GFAM (Google/Facebook/Amazon/Microsoft)
-- [x] AOSP
-- [x] Manufacturers (OEM)
-- [x] Mobile carriers
-- [x] Qualcomm / Mediatek / Miscellaneous
-
-#### Manufacturers Lists
-
-- [x] Archos
-- [x] Asus
-- [x] Blackberry
-- [x] Gionee
-- [x] LG
-- [x] Google
-- [x] iQOO
-- [x] Fairphone
-- [x] HTC
-- [x] Huawei
-- [x] Motorola
-- [x] Nokia
-- [x] OnePlus
-- [x] Oppo
-- [x] Realme
-- [x] Samsung
-- [x] Sony
-- [x] Tecno
-- [x] TCL
-- [x] Unihertz
-- [x] Vivo/iQOO
-- [x] Wiko
-- [x] Xiaomi
-- [x] ZTE
-
-#### Mobile Carriers Lists
-
-| Country | Carriers                        |
-| ------- | ------------------------------- |
-| France  | Orange, SFR, Free, Bouygues     |
-| USA     | T-Mobile, Verizon, Sprint, AT&T |
-| Germany | Telekom                         |
-| UK      | EE                              |
+This tool stands on the shoulders of giants, using the meticulously researched package lists from the original UAD project. It covers dozens of manufacturers and major mobile carriers.
 
 ---
 
 ## 🛠️ How To Use It
 
-#### Step 1: Prepare Your Phone
+#### Step 1: Prep Your Phone 📱
 
-1.  **Backup Your Data!** You can never be too careful. Use your phone manufacturer's backup tool or any other method you prefer.
-2.  **Enable Developer Options:** On your smartphone, go to `Settings > About Phone` and tap on `Build Number` 7 times.
-3.  **Enable USB Debugging:** Find the new `Developer Options` menu in your settings and turn on `USB Debugging`.
-4.  **(Optional but Recommended)** Disconnect from any OEM accounts (e.g., Samsung Account, Mi Account). Sometimes, removing an account package can cause issues on the lockscreen.
+1.  **BACKUP YOUR DATA!** Seriously. Do it.
+2.  **Enable Developer Options:** Go to `Settings > About Phone` and tap `Build Number` 7 times. You're a developer now!
+3.  **Enable USB Debugging:** Find the new `Developer Options` menu and toggle on `USB Debugging`.
 
-#### Step 2: Use the Application
+#### Step 2: Use The App 🖥️
 
-1.  **Download UAD-Rust:** Grab the latest executable for your operating system from the [**Releases Page**](https://github.com/Md-Siam-Mia-Code/UAD-Universal-Android-Debloater/releases).
-2.  **Connect Your Phone:** Connect your device to your computer with a USB cable. A prompt will appear on your phone asking you to "Allow USB debugging". Check "Always allow from this computer" and tap "Allow".
-3.  **Launch UAD-Rust:** Run the downloaded executable.
-4.  **Detect and List Packages:**
-    - Click **`1. Detect Device`**. The log panel should show your device's serial number.
-    - Click **`2. List Packages`**. The main panel will populate with all the system apps found on your device that are on the debloat lists.
-5.  **Select and Uninstall:**
-    - Use the **Search** and **Filter** options on the left to find packages.
-    - Click the checkbox next to any package you wish to remove.
-    - When ready, click the **`Uninstall Selected (#)`** button.
-6.  **Reboot:** Once finished, you can click **`Reboot Device`** to restart your phone.
+1.  **Download P.U.R.G.E.:** Grab the latest release for your OS from the [**Releases Page**](https://github.com/Md-Siam-Mia-Code/UAD-Universal-Android-Debloater/releases).
+2.  **Connect Your Phone:** Plug your device into your computer. A prompt to "Allow USB debugging" will appear on your phone. Check "Always allow" and tap "Allow".
+3.  **Launch P.U.R.G.E.:** Double-click the executable.
+4.  **Find Your Packages:**
+    - In the sidebar, click **`🔌 Detect Device`**, then **`📦 List Packages`**.
+    - The main panel will fill up with all the bloatware found on your phone.
+5.  **Select & Destroy:**
+    - Use the **Search** and **Filter** controls at the top of the list to find your targets.
+    - Check the box next to any package you want to obliterate.
+    - When you're ready, smash the big **`🔥 Purge`** button in the sidebar.
+6.  **Reboot & Enjoy:** Click **`🔄 Reboot Device`** to restart your phone and enjoy a cleaner, faster experience!
 
-> **IMPORTANT NOTE:** You may need to run this software again after your phone receives a major system update (from your OEM), as some uninstalled system apps might be reinstalled.
+> **P.S.** Your phone manufacturer might reinstall bloatware after a major system update. Just run this tool again to clean it up!
 
 ---
 
 ## 🏗️ Building From Source
 
 1.  **Install Rust:** `https://rustup.rs/`
-2.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/Md-Siam-Mia-Code/UAD-Universal-Android-Debloater.git
-    cd UAD-Universal-Android-Debloater
-    ```
-3.  **Build & Run:**
-    ```bash
-    # For a release (optimized) build
-    cargo run --release
-    ```
+2.  **Install build dependencies** (for Linux).
+3.  **Clone the Repo** and `cd` into it.
+4.  **Run with Cargo:** `cargo run --release`
 
 ---
 
 ## 🙏 Acknowledgements & Credits
 
-This project would not be possible without the incredible work done by the original **Universal Android Debloater** team.
-
-The comprehensive package lists (`uad_lists.json`) are sourced directly from their repository. All credit for the monumental task of researching and maintaining this data goes to **0x192** and the contributors to the original project. We also thank them for the clear and concise user warnings and documentation which we have adapted for this README.
-
-- **Original Project:** [0x192/universal-android-debloater](https://github.com/0x192/universal-android-debloater)
-- **Source for `uad_lists.json`:** [Link to JSON file](https://github.com/0x192/universal-android-debloater/blob/main/resources/assets/uad_lists.json)
-- **Original Project Wiki & FAQ:** [Link to Wiki](https://github.com/0x192/universal-android-debloater/wiki)
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! If you have ideas for new features, bug fixes, or improvements, feel free to open an issue or submit a pull request.
+This project would not be possible without the incredible work done by the original **Universal Android Debloater** team and its contributors, especially **0x192**, for researching and maintaining the package data.
 
 ---
 
