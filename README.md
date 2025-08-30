@@ -55,7 +55,7 @@ This tool stands on the shoulders of giants, using the meticulously researched p
 
 #### Step 2: Use The App 🖥️
 
-1.  **Download P.U.R.G.E.:** Grab the latest release for your OS from the [**Releases Page**](https://github.com/Md-Siam-Mia-Code/UAD-Universal-Android-Debloater/releases).
+1.  **Download P.U.R.G.E.:** Grab the latest release for your OS from the [**Releases Page**](https://github.com/Md-Siam-Mia-Man/UAD-Universal-Android-Debloater/releases).
 2.  **Connect Your Phone:** Plug your device into your computer. A prompt to "Allow USB debugging" will appear on your phone. Check "Always allow" and tap "Allow".
 3.  **Launch P.U.R.G.E.:** Double-click the executable.
 4.  **Find Your Packages:**
