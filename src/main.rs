@@ -1,11 +1,13 @@
 // src/main.rs
-mod gui;
-mod adb;
-mod utils;
-mod config;
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use eframe::NativeOptions;
+mod adb;
+mod config;
+mod gui;
+// The 'mod utils;' line has been removed.
+
 use eframe::egui::IconData;
+use eframe::NativeOptions;
 
 fn load_icon() -> IconData {
     let (icon_rgba, icon_width, icon_height) = {
@@ -27,13 +29,14 @@ fn load_icon() -> IconData {
 fn main() -> Result<(), eframe::Error> {
     let options = NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
-            .with_inner_size([1100.0, 800.0])
+            .with_inner_size([1200.0, 800.0])
             .with_min_inner_size([900.0, 600.0])
-            .with_icon(load_icon()), // This sets the icon
+            .with_icon(load_icon())
+            .with_decorations(false),
         ..Default::default()
     };
     eframe::run_native(
-        "P.U.R.G.E. - Package Uninstaller and Resource & Garbage Eliminator",
+        "P.U.R.G.E.",
         options,
         Box::new(|cc| Box::new(gui::DebloaterApp::new(cc))),
     )
