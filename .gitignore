@@ -3,3 +3,7 @@
 releases/
 
 Cargo.lock
+
+Notes.txt
+
+*.identifier
