@@ -1,4 +1,4 @@
-// adb.rs
+// src/adb.rs
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::PathBuf;
@@ -13,86 +13,107 @@ const ADB_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/vendor/linux");
 #[cfg(not(any(target_os = "windows", target_os = "linux")))]
 compile_error!("This application is only supported on Windows and Linux.");
 
-fn extract_adb_binaries() -> PathBuf {
-    let target_dir = std::env::temp_dir().join("uad_adb");
-
-    if !target_dir.exists() {
-        fs::create_dir_all(&target_dir).expect("Failed to create adb temp dir");
-    }
+fn extract_adb_binaries() -> std::io::Result<PathBuf> {
+    let target_dir = std::env::temp_dir().join("purge_adb");
+    fs::create_dir_all(&target_dir)?;
 
     for file in ADB_DIR.files() {
-        let file_path = file.path();
-        let file_name = file_path.file_name().unwrap();
-        let dest_path = target_dir.join(file_name);
-
+        let dest_path = target_dir.join(file.path().file_name().unwrap());
         if !dest_path.exists() {
-            let mut f = File::create(&dest_path).expect("Failed to create adb file");
-            f.write_all(file.contents())
-                .expect("Failed to write adb file");
+            let mut f = File::create(&dest_path)?;
+            f.write_all(file.contents())?;
 
-            // On Unix systems, we need to set the executable permission for the adb binary.
             #[cfg(unix)]
-            if file_name == "adb" {
+            if file.path().file_name().unwrap() == "adb" {
                 use std::os::unix::fs::PermissionsExt;
-                let perms = fs::Permissions::from_mode(0o755); // rwxr-xr-x
-                fs::set_permissions(&dest_path, perms)
-                    .expect("Failed to set executable permissions on adb");
+                fs::set_permissions(&dest_path, fs::Permissions::from_mode(0o755))?;
             }
         }
     }
-
-    target_dir
+    Ok(target_dir)
 }
 
-fn adb_path() -> PathBuf {
-    let adb_dir = extract_adb_binaries();
-    
+fn adb_path() -> std::io::Result<PathBuf> {
+    let adb_dir = extract_adb_binaries()?;
     #[cfg(target_os = "windows")]
     let adb_executable = "adb.exe";
     #[cfg(not(target_os = "windows"))]
     let adb_executable = "adb";
-
-    adb_dir.join(adb_executable)
+    Ok(adb_dir.join(adb_executable))
 }
 
-pub fn detect_device() -> String {
-    let output = Command::new(adb_path()).arg("devices").output();
+pub fn detect_device() -> Result<(), String> {
+    let adb = adb_path().map_err(|e| format!("Failed to prepare ADB: {}", e))?;
+    let output = Command::new(adb).arg("devices").output();
 
     match output {
-        Ok(res) => String::from_utf8_lossy(&res.stdout).to_string(),
-        Err(e) => format!("Error: {}", e),
+        Ok(res) => {
+            let stdout = String::from_utf8_lossy(&res.stdout);
+            if stdout.lines().any(|line| line.ends_with("\tdevice")) {
+                Ok(())
+            } else {
+                Err("No authorized device found.".to_string())
+            }
+        }
+        Err(e) => Err(format!("ADB command failed: {}", e)),
     }
 }
 
-pub fn list_packages() -> Vec<String> {
-    let output = Command::new(adb_path())
+pub fn get_device_model() -> Result<String, String> {
+    let adb = adb_path().map_err(|e| format!("Failed to prepare ADB: {}", e))?;
+    let output = Command::new(adb)
+        .arg("shell")
+        .arg("getprop")
+        .arg("ro.product.model")
+        .output();
+
+    match output {
+        Ok(res) if res.status.success() => {
+            let model = String::from_utf8_lossy(&res.stdout).trim().to_string();
+            if model.is_empty() {
+                Err("Device model name is empty.".to_string())
+            } else {
+                Ok(model)
+            }
+        }
+        _ => Err("Could not retrieve device model.".to_string()),
+    }
+}
+
+pub fn list_packages() -> Result<Vec<String>, String> {
+    let adb = adb_path().map_err(|e| format!("Failed to prepare ADB: {}", e))?;
+    let output = Command::new(adb)
         .arg("shell")
         .arg("pm list packages")
         .output();
 
     match output {
-        Ok(res) => String::from_utf8_lossy(&res.stdout)
+        Ok(res) => Ok(String::from_utf8_lossy(&res.stdout)
             .lines()
             .map(|line| line.replace("package:", ""))
-            .collect(),
-        Err(_) => vec!["Failed to list packages.".to_string()],
+            .collect()),
+        Err(e) => Err(format!("Failed to list packages: {}", e)),
     }
 }
 
 pub fn uninstall(package: &str) {
-    let _ = Command::new(adb_path())
-        .arg("shell")
-        .arg("pm uninstall --user 0")
-        .arg(package)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .output();
+    if let Ok(adb) = adb_path() {
+        let _ = Command::new(adb)
+            .arg("shell")
+            .arg("pm uninstall --user 0")
+            .arg(package)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
 }
 
 pub fn reboot_device() {
-    let _ = Command::new(adb_path())
-        .arg("reboot")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status();
+    if let Ok(adb) = adb_path() {
+        let _ = Command::new(adb)
+            .arg("reboot")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
 }
