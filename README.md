@@ -10,7 +10,7 @@
 > [!WARNING] > **Use at your own risk!** 💀 This is powerful software. I am not responsible for anything that could happen to your phone. Always make a full backup of your data before proceeding.
 
 <p align="center">
-  <em>Say goodbye to bloatware with a slick, modern, and native GUI!</em>
+  <em>Say goodbye to bloatware with a slick, modern, and truly native GUI.</em>
 </p>
 
 ![P.U.R.G.E. Screenshot](assets/img/UI.png)
@@ -19,7 +19,7 @@
 
 ## 📖 Summary
 
-Welcome to **P.U.R.G.E.**! 📱 This is a native debloater GUI built from scratch in Rust and `egui` for a fast, responsive, and truly cross-platform experience. Our mission is to help you reclaim your device's privacy and battery life by making it dead simple to remove unnecessary system apps. A leaner device also means a smaller [attack surface](https://en.wikipedia.org/wiki/Attack_surface), hardening your security.
+Welcome to **P.U.R.G.E.**! 📱 This is a native debloater GUI built from scratch in Rust and `egui` for a fast, responsive, and truly cross-platform experience. Our mission is to help you reclaim your device's privacy and battery life by making it simple to remove unnecessary system apps. A leaner device also means a smaller [attack surface](https://en.wikipedia.org/wiki/Attack_surface), hardening your security.
 
 Packages are documented to give you a clear idea of what's safe to remove. The worst-case scenario is a bootloop, but don't panic! After about 5 failed boots, your phone will enter recovery mode, where you can perform a factory reset.
 
@@ -30,12 +30,13 @@ Packages are documented to give you a clear idea of what's safe to remove. The w
 ## ✨ Features
 
 - **🚀 Blazing Fast & Feather-Light:** Built with native Rust for instant startup and minimal resource usage. No sluggish Electron apps here!
-- **🎨 Polished & Modern UI:** A beautiful, non-blocking interface with a logical layout, clear action buttons, and helpful icons.
-- **📊 Visual Progress Bar:** Never get left in the dark. A progress bar shows you exactly how much work is left during a purge.
+- **🎨 Custom-Crafted Native Interface:** No web-views, no bloat. A stunning dark theme with a custom, frame-less title bar and a responsive layout built for clarity.
+- **💡 Intuitive Package Inspector:** A master-detail view. Click any package to see its full description, dependencies, and labels in a dedicated side panel.
+- **🚦 At-a-Glance Safety Indicators:** Color-coded dots (🟢, 🟡, 🔴) instantly show the removal safety level for each package, right next to its name.
+- **🔍 Advanced Filtering & Search:** Instantly find any package with powerful search and multi-category filters for lists and safety levels.
+- **🖥️ Integrated Status Display:** A clean, intelligent status indicator in the sidebar keeps you informed without the clutter of a verbose log.
 - **📦 All-In-One Executable:** The required ADB binaries for Windows and Linux are embedded directly into the app. Zero setup required!
 - **💻 Genuinely Cross-Platform:** One codebase that compiles and runs flawlessly on both Windows and Linux.
-- **🔍 Find Anything, Instantly:** A compact control bar lets you search, filter by list (`Recommended`, `Advanced`), and sort by removal status.
-- **ℹ️ Know Before You Nuke:** View detailed descriptions, dependencies, and other critical info for each package before you hit uninstall.
 
 ---
 
@@ -58,14 +59,14 @@ This tool stands on the shoulders of giants, using the meticulously researched p
 1.  **Download P.U.R.G.E.:** Grab the latest release for your OS from the [**Releases Page**](https://github.com/Md-Siam-Mia-Man/UAD-Universal-Android-Debloater/releases).
 2.  **Connect Your Phone:** Plug your device into your computer. A prompt to "Allow USB debugging" will appear on your phone. Check "Always allow" and tap "Allow".
 3.  **Launch P.U.R.G.E.:** Double-click the executable.
-4.  **Find Your Packages:**
-    - In the sidebar, click **`🔌 Detect Device`**, then **`📦 List Packages`**.
-    - The main panel will fill up with all the bloatware found on your phone.
+4.  **List Packages:**
+    - In the sidebar, click the big **`🔄 Refresh Connection`** button.
+    - The app will find your device, display its name, and list all removable packages.
 5.  **Select & Destroy:**
     - Use the **Search** and **Filter** controls at the top of the list to find your targets.
-    - Check the box next to any package you want to obliterate.
+    - **Click anywhere** on a package card to select it for removal.
     - When you're ready, smash the big **`🔥 Purge`** button in the sidebar.
-6.  **Reboot & Enjoy:** Click **`🔄 Reboot Device`** to restart your phone and enjoy a cleaner, faster experience!
+6.  **Reboot & Enjoy:** Click **`Reboot Device`** to restart your phone and enjoy a cleaner, faster experience!
 
 > **P.S.** Your phone manufacturer might reinstall bloatware after a major system update. Just run this tool again to clean it up!
 
@@ -74,7 +75,7 @@ This tool stands on the shoulders of giants, using the meticulously researched p
 ## 🏗️ Building From Source
 
 1.  **Install Rust:** `https://rustup.rs/`
-2.  **Install build dependencies** (for Linux).
+2.  **Install build dependencies** (see the [eframe docs](https://github.com/emilk/eframe#compiling) for your OS).
 3.  **Clone the Repo** and `cd` into it.
 4.  **Run with Cargo:** `cargo run --release`
 
