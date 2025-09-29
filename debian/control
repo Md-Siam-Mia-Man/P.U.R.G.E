@@ -1,0 +1,16 @@
+Source: purge
+Section: utils
+Priority: optional
+Maintainer: Md. Siam Mia
+Build-Depends: debhelper (>= 11)
+Standards-Version: 4.1.3
+
+Package: purge
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Package Uninstaller and Resource & Garbage Eliminator
+ A fast, native GUI for removing bloatware from Android devices.
+ Built in Rust for a lightweight and cross-platform experience.
+ .
+ P.U.R.G.E. helps you reclaim your device's privacy and battery life by
+ making it simple to remove unnecessary system apps.
